@@ -1,32 +1,178 @@
-# This file was generated using idf.py save-defconfig. It can be edited manually.
-# Espressif IoT Development Framework (ESP-IDF) 5.5.1 Project Minimal Configuration
+# This file was generated using idf.py save-defconfig or menuconfig [D] key. It can be edited manually.
+# Espressif IoT Development Framework (ESP-IDF) 5.5.4 Project Minimal Configuration
+#
+
+#
+# Serial flasher config
+#
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+# end of Serial flasher config
+
+#
+# Partition Table
 #
 CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions_8MB.csv"
+# end of Partition Table
+
+#
+# Basic Demo Config
+#
+
+#
+# Default Wi-Fi Settings
+#
+CONFIG_BASIC_DEMO_WIFI_SSID="Mangdang"
+CONFIG_BASIC_DEMO_WIFI_PASSWORD="mangdang"
+# end of Default Wi-Fi Settings
+
+#
+# Default LLM Settings
+#
+CONFIG_BASIC_DEMO_LLM_PROVIDER_CUSTOM=y
+CONFIG_BASIC_DEMO_LLM_API_KEY="sk-poe-vz9yA8fDXv_fpHH9tKBfugGCuFeW11Kzd0DJZFj8m0E"
+CONFIG_BASIC_DEMO_LLM_BACKEND_TYPE="openai_compatible"
+CONFIG_BASIC_DEMO_LLM_PROFILE="openAI"
+CONFIG_BASIC_DEMO_LLM_MODEL="gpt-5.4"
+CONFIG_BASIC_DEMO_LLM_BASE_URL="https://api.poe.com/v1"
+# end of Default LLM Settings
+
+#
+# Default IM Settings
+#
+CONFIG_BASIC_DEMO_TG_BOT_TOKEN="8227581321:AAEC4nhxEATTatK1mVT5UaSPe6GzycVdKXI"
+# end of Default IM Settings
+# end of Basic Demo Config
+
+#
+# Expression Emote Configuration
+#
+CONFIG_EMOTE_DEF_BG_COLOR=0x171617
+# end of Expression Emote Configuration
+
+#
+# ESP Board Manager Configuration
+#
+
+#
+# Peripheral Support
+#
+CONFIG_ESP_BOARD_PERIPH_RMT_SUPPORT=y
+# end of Peripheral Support
+
+#
+# Device Support
+#
+CONFIG_ESP_BOARD_DEV_CUSTOM_SUPPORT=y
+# end of Device Support
+# end of ESP Board Manager Configuration
+
+#
+# Component config
+#
+
+#
+# HTTP Server
+#
 CONFIG_HTTPD_WS_SUPPORT=y
+# end of HTTP Server
+
+#
+# ESP PSRAM
+#
+CONFIG_SPIRAM=y
+
+#
+# SPI RAM config
+#
 CONFIG_SPIRAM_MEMTEST=n
 CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=0
 CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y
 CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=98304
 CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
 CONFIG_SPIRAM_ALLOW_NOINIT_SEG_EXTERNAL_MEMORY=y
-CONFIG_FREERTOS_TASK_CREATE_ALLOW_EXT_MEM=y
+# end of SPI RAM config
+# end of ESP PSRAM
+
+#
+# ESP System Settings
+#
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+# end of ESP System Settings
+
+#
+# Wi-Fi
+#
 CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=3
 CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=6
 CONFIG_ESP_WIFI_RX_BA_WIN=3
+# end of Wi-Fi
+
+#
+# FAT Filesystem support
+#
 CONFIG_FATFS_LFN_HEAP=y
+# end of FAT Filesystem support
+
+#
+# FreeRTOS
+#
+
+#
+# Kernel
+#
 CONFIG_FREERTOS_IDLE_TASK_STACKSIZE=2048
-CONFIG_FREERTOS_USE_TRACE_FACILITY=y
 CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
-CONFIG_HEAP_TASK_TRACKING=n
+# end of Kernel
+
+#
+# Extra
+#
+CONFIG_FREERTOS_TASK_CREATE_ALLOW_EXT_MEM=y
+# end of Extra
+# end of FreeRTOS
+
+#
+# LWIP
+#
 CONFIG_LWIP_LOCAL_HOSTNAME="esp-claw"
 CONFIG_LWIP_MAX_SOCKETS=20
 CONFIG_LWIP_TCPIP_RECVMBOX_SIZE=16
+
+#
+# TCP
+#
 CONFIG_LWIP_TCP_OOSEQ_MAX_PBUFS=4
+# end of TCP
+
+#
+# SNTP
+#
+CONFIG_LWIP_SNTP_MAX_SERVERS=2
+# end of SNTP
+# end of LWIP
+
+#
+# mbedTLS
+#
 CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC=y
 CONFIG_MBEDTLS_HARDWARE_AES=n
-CONFIG_IDF_EXPERIMENTAL_FEATURES=y
+# end of mbedTLS
+
+#
+# mmap file support format
+#
 CONFIG_MMAP_FILE_NAME_LENGTH=32
-CONFIG_SPIRAM_XIP_FROM_PSRAM=y
-CONFIG_EMOTE_DEF_BG_COLOR=0x171617
+# end of mmap file support format
+
+#
+# ESP-Claw Core
+#
 CONFIG_CLAW_CORE_STAGE_VERBOSITY_VERBOSE=y
-CONFIG_LWIP_SNTP_MAX_SERVERS=2
+# end of ESP-Claw Core
+# end of Component config
+
+CONFIG_IDF_EXPERIMENTAL_FEATURES=y
+CONFIG_SPIRAM_FETCH_INSTRUCTIONS=y
+CONFIG_SPIRAM_RODATA=y

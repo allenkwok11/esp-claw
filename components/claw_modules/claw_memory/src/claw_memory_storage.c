@@ -64,8 +64,18 @@ esp_err_t claw_memory_load_index(cJSON **out_root)
     free(raw);
     if (!root || !cJSON_IsObject(root)) {
         cJSON_Delete(root);
-        ESP_LOGE(TAG, "Failed to parse memory index: %s", s_memory.index_path);
-        return ESP_FAIL;
+        ESP_LOGW(TAG, "Failed to parse memory index: %s, recreating an empty index", s_memory.index_path);
+        root = claw_memory_new_index_root();
+        if (!root) {
+            return ESP_ERR_NO_MEM;
+        }
+        err = claw_memory_save_index(root);
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to persist recovered memory index %s: %s",
+                     s_memory.index_path, esp_err_to_name(err));
+        }
+        *out_root = root;
+        return ESP_OK;
     }
 
     if (!cJSON_IsArray(cJSON_GetObjectItem(root, "summaries"))) {

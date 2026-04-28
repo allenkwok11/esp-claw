@@ -37,6 +37,7 @@
 #include "esp_check.h"
 #include "esp_log.h"
 #include "freertos/task.h"
+#include "llm/claw_llm_runtime.h"
 
 static const char *TAG = "app_esp_claw";
 #if CONFIG_BASIC_DEMO_MEMORY_MODE_FULL
@@ -138,6 +139,11 @@ static void basic_demo_time_sync_success(bool had_valid_time, void *ctx)
 
 static esp_err_t init_memory(const basic_demo_settings_t *settings, const basic_demo_paths_t *paths)
 {
+    const bool llm_ready_for_extract = settings &&
+                                       settings->llm_api_key[0] &&
+                                       settings->llm_model[0] &&
+                                       settings->llm_profile[0] &&
+                                       claw_llm_profile_find(settings->llm_profile) != NULL;
     claw_memory_config_t memory_config = {
         .session_root_dir = paths->memory_session_root,
         .memory_root_dir = paths->memory_root_dir,
@@ -154,12 +160,18 @@ static esp_err_t init_memory(const basic_demo_settings_t *settings, const basic_
             .image_max_bytes = 0,
         },
 #if CONFIG_BASIC_DEMO_MEMORY_MODE_FULL
-        .enable_async_extract_stage_note = true,
+        .enable_async_extract_stage_note = llm_ready_for_extract,
 #else
         .enable_async_extract_stage_note = false,
 #endif
     };
     esp_err_t err;
+
+#if CONFIG_BASIC_DEMO_MEMORY_MODE_FULL
+    if (!llm_ready_for_extract) {
+        ESP_LOGW(TAG, "Memory async extract disabled because LLM config is incomplete or profile is unsupported");
+    }
+#endif
 
     err = claw_memory_init(&memory_config);
     if (err != ESP_OK) {
@@ -316,7 +328,11 @@ static const char *basic_demo_llm_provider_name(const basic_demo_settings_t *set
 
 static bool basic_demo_llm_is_configured(const basic_demo_settings_t *settings)
 {
-    return settings && settings->llm_api_key[0] && settings->llm_model[0] && settings->llm_profile[0];
+    return settings &&
+           settings->llm_api_key[0] &&
+           settings->llm_model[0] &&
+           settings->llm_profile[0] &&
+           claw_llm_profile_find(settings->llm_profile) != NULL;
 }
 
 esp_err_t app_claw_start(const basic_demo_settings_t *settings)
@@ -390,8 +406,8 @@ esp_err_t app_claw_start(const basic_demo_settings_t *settings)
     core_config.max_context_providers = 8;
 
     if (!llm_enabled) {
-        ESP_LOGW(TAG, "LLM is not fully configured. Provider=%s profile=%s model=%s. "
-                      "The demo will start without claw_core; ask, auto-route-to-agent, and image analysis stay disabled until LLM API key, profile, and model are set.",
+        ESP_LOGW(TAG, "LLM is not fully configured or profile is unsupported. Provider=%s profile=%s model=%s. "
+                      "The demo will start without claw_core; ask, auto-route-to-agent, and image analysis stay disabled until LLM API key, a supported profile, and model are set.",
                  basic_demo_llm_provider_name(settings), settings->llm_profile[0] ? settings->llm_profile : "(empty)",
                  settings->llm_model[0] ? settings->llm_model : "(empty)");
     } else {

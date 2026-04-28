@@ -1,0 +1,4 @@
+board: esp32_S3_DevKitC_1_breadboard_smallscreen
+chip: esp32s3
+description: "ESP32-S3-DevKitC-1 breadboard with 80x160 small SPI LCD"
+manufacturer: "ESPRESSIF"

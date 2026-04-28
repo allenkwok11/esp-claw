@@ -22,12 +22,50 @@
 static const char *TAG = "app_emote";
 
 #define EMOTE_ASSETS_PARTITION "emote"
+#define APP_EMOTE_UNSTABLE_BOARD "esp32_S3_DevKitC_1"
+#define APP_EMOTE_MIN_SAFE_WIDTH 240
+#define APP_EMOTE_MIN_SAFE_HEIGHT 240
 
 static esp_lcd_panel_io_handle_t s_io_handle;
 static esp_lcd_panel_handle_t s_panel_handle;
 static int s_lcd_width;
 static int s_lcd_height;
 static emote_handle_t s_emote_handle;
+static bool s_emote_disabled;
+
+static bool app_emote_is_unstable_board_name(const char *name)
+{
+    return name != NULL && strcmp(name, APP_EMOTE_UNSTABLE_BOARD) == 0;
+}
+
+static bool app_emote_should_disable_for_board(void)
+{
+    esp_board_info_t info = {0};
+    void *lcd_config = NULL;
+
+    if (esp_board_manager_get_board_info(&info) != ESP_OK) {
+        info.name = NULL;
+    }
+
+    if (app_emote_is_unstable_board_name(info.name)) {
+        ESP_LOGW(TAG, "Expression emote disabled on board %s because esp_emote_gfx is unstable on this target",
+                 info.name);
+        return true;
+    }
+
+    if (esp_board_manager_get_device_config(ESP_BOARD_DEVICE_NAME_DISPLAY_LCD, &lcd_config) == ESP_OK &&
+            lcd_config != NULL) {
+        const dev_display_lcd_config_t *lcd_cfg = (const dev_display_lcd_config_t *)lcd_config;
+
+        if (lcd_cfg->lcd_width < APP_EMOTE_MIN_SAFE_WIDTH || lcd_cfg->lcd_height < APP_EMOTE_MIN_SAFE_HEIGHT) {
+            ESP_LOGW(TAG, "Expression emote disabled for small display %dx%d because current emote assets expect a larger panel",
+                     lcd_cfg->lcd_width, lcd_cfg->lcd_height);
+            return true;
+        }
+    }
+
+    return false;
+}
 
 static bool app_emote_should_swap_color(const dev_display_lcd_config_t *lcd_cfg)
 {
@@ -209,6 +247,10 @@ esp_err_t app_expression_emote_set_network_state(bool connected)
 
 esp_err_t app_expression_emote_set_status(bool sta_connected, const char *ap_ssid)
 {
+    if (s_emote_disabled) {
+        return ESP_OK;
+    }
+
     ESP_RETURN_ON_FALSE(s_emote_handle != NULL, ESP_ERR_INVALID_STATE,
                         TAG, "emote handle is NULL");
 
@@ -257,6 +299,11 @@ static esp_err_t app_expression_emote_init(void)
 
     if (s_emote_handle) {
         ESP_LOGI(TAG, "Expression emote app already initialized");
+        return ESP_OK;
+    }
+
+    if (app_emote_should_disable_for_board()) {
+        s_emote_disabled = true;
         return ESP_OK;
     }
 

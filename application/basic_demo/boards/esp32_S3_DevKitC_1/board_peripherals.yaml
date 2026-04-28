@@ -19,3 +19,25 @@ peripherals:
         io_od_mode: false
         allow_pd: false
         init_level: false
+
+  - name: spi_display
+    type: spi
+    role: master
+    config:
+      spi_bus_config:
+        spi_port: SPI3_HOST
+        data0_io_num: 40
+        sclk_io_num: 41
+        max_transfer_sz: 6400
+
+  # The display module backlight is active-low on GPIO42.
+  # Keep it enabled at boot so panel init is immediately visible.
+  - name: ledc_backlight
+    type: ledc
+    role: none
+    config:
+      gpio_num: 42
+      freq_hz: 5000
+      duty: 1023
+      duty_resolution: LEDC_TIMER_10_BIT
+      output_invert: true

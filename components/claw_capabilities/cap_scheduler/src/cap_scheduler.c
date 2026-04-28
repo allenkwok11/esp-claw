@@ -592,7 +592,34 @@ static esp_err_t cap_scheduler_load_from_disk_locked(void)
                  s_cap_scheduler.schedules_path,
                  esp_err_to_name(err));
         free(items);
-        return err;
+
+        if (err != ESP_ERR_INVALID_RESPONSE && err != ESP_ERR_INVALID_ARG) {
+            return err;
+        }
+
+        ESP_LOGW(TAG,
+                 "Scheduler definitions are invalid, recreating an empty schedule set at %s",
+                 s_cap_scheduler.schedules_path);
+        memset(s_cap_scheduler.entries, 0, s_cap_scheduler.max_items * sizeof(cap_scheduler_entry_t));
+        s_cap_scheduler.item_count = 0;
+
+        err = cap_scheduler_persist_definitions_locked();
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to persist recovered scheduler definitions to %s: %s",
+                     s_cap_scheduler.schedules_path,
+                     esp_err_to_name(err));
+        }
+
+        err = cap_scheduler_persist_runtime_state_locked();
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to persist recovered scheduler runtime state to %s: %s",
+                     s_cap_scheduler.state_path,
+                     esp_err_to_name(err));
+        }
+
+        ESP_LOGI(TAG, "Recovered with 0 scheduler entries from %s",
+                 s_cap_scheduler.schedules_path);
+        return ESP_OK;
     }
 
     memset(s_cap_scheduler.entries, 0, s_cap_scheduler.max_items * sizeof(cap_scheduler_entry_t));

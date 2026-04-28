@@ -14,6 +14,8 @@
 #include "claw_skill.h"
 #include "config_http_server.h"
 #include "esp_err.h"
+#include "esp_heap_caps.h"
+#include "esp_lcd_panel_ops.h"
 #include "esp_log.h"
 #include <stdint.h>
 #include "time.h"
@@ -31,6 +33,70 @@ const char *basic_demo_fatfs_base_path = "/fatfs";
 #define BASIC_DEMO_ENABLE_MEM_LOG        (0)
 
 static wl_handle_t s_wl_handle = WL_INVALID_HANDLE;
+
+static esp_err_t basic_demo_fill_display_boot_color(uint16_t color)
+{
+#if !CONFIG_ESP_BOARD_DEV_DISPLAY_LCD_SUPPORT
+    (void)color;
+    return ESP_ERR_NOT_SUPPORTED;
+#else
+    void *lcd_handle = NULL;
+    void *lcd_config = NULL;
+    esp_err_t err = esp_board_manager_get_device_handle(ESP_BOARD_DEVICE_NAME_DISPLAY_LCD,
+                                                        &lcd_handle);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "Display handle unavailable for boot fill: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    err = esp_board_manager_get_device_config(ESP_BOARD_DEVICE_NAME_DISPLAY_LCD, &lcd_config);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "Display config unavailable for boot fill: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    if (lcd_handle == NULL || lcd_config == NULL) {
+        ESP_LOGW(TAG, "Display handle/config is NULL during boot fill");
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    dev_display_lcd_handles_t *lcd_handles = (dev_display_lcd_handles_t *)lcd_handle;
+    dev_display_lcd_config_t *lcd_cfg = (dev_display_lcd_config_t *)lcd_config;
+    if (lcd_handles->panel_handle == NULL) {
+        ESP_LOGW(TAG, "Display panel handle is NULL during boot fill");
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    const int width = lcd_cfg->lcd_width;
+    const int height = lcd_cfg->lcd_height;
+    const int rows_per_chunk = 20;
+    const size_t pixel_count = (size_t)width * rows_per_chunk;
+    uint16_t *buffer = heap_caps_malloc(pixel_count * sizeof(uint16_t),
+                                        MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+    if (buffer == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate LCD boot-fill buffer");
+        return ESP_ERR_NO_MEM;
+    }
+
+    for (size_t i = 0; i < pixel_count; ++i) {
+        buffer[i] = color;
+    }
+
+    for (int y = 0; y < height; y += rows_per_chunk) {
+        const int y_end = (y + rows_per_chunk < height) ? (y + rows_per_chunk) : height;
+        err = esp_lcd_panel_draw_bitmap(lcd_handles->panel_handle, 0, y, width, y_end, buffer);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Boot fill draw failed at y=%d: %s", y, esp_err_to_name(err));
+            free(buffer);
+            return err;
+        }
+    }
+
+    free(buffer);
+    ESP_LOGI(TAG, "Boot fill completed on LCD: %dx%d color=0x%04x", width, height, color);
+    return ESP_OK;
+#endif
+}
 
 static esp_err_t cap_lua_run_deactivate_guard(const char *session_id,
                                               const char *skill_id,
@@ -201,6 +267,9 @@ void app_main(void)
     ESP_ERROR_CHECK(basic_demo_settings_load(&s_settings));
     init_timezone(s_settings.time_timezone); // no need to check error
     ESP_ERROR_CHECK(esp_board_manager_init());
+    vTaskDelay(pdMS_TO_TICKS(80));
+    ESP_ERROR_CHECK(basic_demo_fill_display_boot_color(0xF800));
+    vTaskDelay(pdMS_TO_TICKS(120));
 #if defined(CONFIG_BASIC_DEMO_ENABLE_EMOTE)
     ESP_ERROR_CHECK(app_expression_emote_start());
 #endif

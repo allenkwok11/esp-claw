@@ -68,7 +68,7 @@ peripherals:
         spi_port: SPI3_HOST
         data0_io_num: 40
         sclk_io_num: 41
-        max_transfer_sz: 19200
+        max_transfer_sz: 6400
 
   # The backlight PMOS is active-low on GPIO42, so keep duty high at boot.
   - name: ledc_backlight

@@ -1,0 +1,1 @@
+Command: /Users/allen/.espressif/tools/python/v5.5.4/venv/bin/python -m espsecure generate_signing_key --version 2 secure_boot_signing_key.pem

@@ -64,8 +64,8 @@ devices:
       mirror_y: false
       swap_xy: false
       invert_color: true
-      x_max: 240
-      y_max: 320
+      x_max: 80
+      y_max: 160
       io_spi_config:
         cs_gpio_num: -1
         dc_gpio_num: 39
