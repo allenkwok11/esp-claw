@@ -55,22 +55,24 @@ devices:
 
 
   - name: display_lcd
-    chip: st7789
+    chip: st7735
     type: display_lcd
     sub_type: spi
     version: default
+    dependencies:
+      teriyakigod/esp_lcd_st7735: "*"
     config:
       mirror_x: false
-      mirror_y: false
-      swap_xy: false
+      mirror_y: true
+      swap_xy: true
       invert_color: true
-      x_max: 80
-      y_max: 160
+      x_max: 160
+      y_max: 80
       io_spi_config:
         cs_gpio_num: -1
         dc_gpio_num: 39
         spi_mode: 0
-        pclk_hz: 20000000
+        pclk_hz: 10000000
 
       lcd_panel_config:
         reset_gpio_num: -1

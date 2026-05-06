@@ -57,7 +57,7 @@ peripherals:
         bclk_inv: false
         ws_inv: false
 
-  # LCD SPI configuration for the 240x320 ST7789 SPI color panel.
+  # LCD SPI configuration for the 160x80 ST7735 SPI color panel.
   - name: spi_display
     type: spi
     role: master
@@ -66,7 +66,7 @@ peripherals:
         spi_port: SPI3_HOST
         data0_io_num: 40
         sclk_io_num: 41
-        max_transfer_sz: 6400
+        max_transfer_sz: 25600
 
   # The backlight PMOS is active-low on GPIO42, so keep duty high at boot.
   - name: ledc_backlight
