@@ -463,6 +463,26 @@ local function init_audio()
         return
     end
 
+    local board_info = bm.get_board_info()
+    if board_info and board_info.name == "esp32_S3_DevKitC_1_breadboard_smallscreen" then
+        local i2s_tx, rate, channels, bits =
+            bm.get_i2s_output_params("i2s_audio_out")
+        if not i2s_tx then
+            print("[lappybird] WARN: get_i2s_output_params(i2s_audio_out) failed: " .. tostring(rate))
+            return
+        end
+
+        local output, out_err = audio.new_i2s_output(i2s_tx, rate, channels, 32)
+        if not output then
+            print("[lappybird] WARN: audio.new_i2s_output failed: " .. tostring(out_err))
+            return
+        end
+
+        audio_output = output
+        pcall(audio.set_volume, audio_output, SOUND_VOLUME)
+        return
+    end
+
     local output_codec, output_rate, output_channels, output_bits =
         bm.get_audio_codec_output_params("audio_dac")
     if not output_codec then

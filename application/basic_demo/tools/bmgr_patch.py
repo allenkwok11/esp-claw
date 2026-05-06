@@ -12,8 +12,10 @@ from pathlib import Path
 
 
 UAC_FILE = 'managed_components/espressif__usb_host_uac/uac_host.c'
-C_FILE = 'managed_components/espressif__esp_board_manager/src/esp_board_device.c'
-H_FILE = 'managed_components/espressif__esp_board_manager/include/esp_board_device.h'
+CANDIDATE_BOARD_MANAGER_ROOTS = (
+    'managed_components/espressif__esp_board_manager',
+    'components/espressif__esp_board_manager',
+)
 GEN_BOARD_DEVICE_CONFIG_FILE = 'components/gen_bmgr_codes/gen_board_device_config.c'
 
 UPDATE_CONFIG_FUNCTION = """esp_err_t esp_board_device_update_config(const char *name, const void *config)
@@ -63,6 +65,15 @@ def ensure_contains(path: Path, needle: str) -> str:
     if needle not in content:
         fail(f'Expected content not found in {path}: {needle}')
     return content
+
+
+def resolve_existing_path(project_dir: Path, relative_candidates: tuple[str, ...]) -> Path:
+    for relative_candidate in relative_candidates:
+        candidate_path = project_dir / relative_candidate
+        if candidate_path.exists():
+            return candidate_path
+    candidate_list = ', '.join(str(project_dir / candidate) for candidate in relative_candidates)
+    fail(f'None of the candidate paths exist: {candidate_list}')
 
 
 def write_if_changed(path: Path, original: str, updated: str) -> bool:
@@ -126,8 +137,9 @@ def patch_gen_board_device_config_file(path: Path) -> bool:
 def main() -> int:
     args = parse_args()
     project_dir = Path(args.project_dir).resolve()
-    c_path = project_dir / C_FILE
-    h_path = project_dir / H_FILE
+    board_manager_root = resolve_existing_path(project_dir, CANDIDATE_BOARD_MANAGER_ROOTS)
+    c_path = board_manager_root / 'src/esp_board_device.c'
+    h_path = board_manager_root / 'include/esp_board_device.h'
     uac_path = project_dir / UAC_FILE
     gen_board_device_config_path = project_dir / GEN_BOARD_DEVICE_CONFIG_FILE
 

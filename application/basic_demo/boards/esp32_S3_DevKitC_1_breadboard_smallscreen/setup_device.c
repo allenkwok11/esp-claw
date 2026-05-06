@@ -360,67 +360,6 @@ static int usb_camera_deinit(void *device_handle)
 CUSTOM_DEVICE_IMPLEMENT(camera, usb_camera_init, usb_camera_deinit);
 
 
-const static dev_audio_codec_config_t esp_bmgr_fake_audio_dac_cfg = {
-    .name = "audio_dac",
-    .chip = "none",
-    .type = "audio_codec",
-    .data_if_type = 0,
-    .adc_enabled = true,
-    .adc_max_channel = 0,
-    .adc_channel_mask = 0x3,
-    .adc_channel_labels = "",
-    .adc_init_gain = 0,
-    .dac_enabled = true,
-    .dac_max_channel = 0,
-    .dac_channel_mask = 0x0,
-    .dac_init_gain = 10,
-    .pa_cfg = {
-        .name = NULL,
-        .port = 0,
-        .active_level = 0,
-        .gain = 0.0,
-    },
-    .i2c_cfg = {
-        .name = NULL,
-        .port = 0,
-        .address = 0,
-        .frequency = 0,
-    },
-    .i2s_cfg = {
-        .name = "i2s_audio_out",
-        .port = 0,
-        .clk_src = 0,
-        .tx_aux_out_io = -1,
-        .tx_aux_out_line = 0,
-        .tx_aux_out_invert = false,
-    },
-    .adc_cfg = {
-        .periph_name = NULL,
-        .sample_rate_hz = 0,
-        .max_store_buf_size = 0,
-        .conv_frame_size = 0,
-        .conv_mode = 0,
-        .format = 0,
-        .pattern_num = 0,
-        .cfg_mode = 0,
-        .cfg = {
-            .single_unit = {
-                .unit_id = 0,
-                .atten = 0,
-                .bit_width = 0,
-                .channel_id = {},
-            },
-        },
-    },
-    .metadata = NULL,
-    .metadata_size = 0,
-    .mclk_enabled = false,
-    .aec_enabled = false,
-    .eq_enabled = false,
-    .alc_enabled = false,
-};
-
-
 const static dev_audio_codec_config_t esp_bmgr_fake_audio_adc_cfg = {
     .name = "audio_adc",
     .chip = "none",
@@ -480,52 +419,6 @@ const static dev_audio_codec_config_t esp_bmgr_fake_audio_adc_cfg = {
     .eq_enabled = false,
     .alc_enabled = false,
 };
-
-static int audio_dac_init(void *config, int cfg_size, void **device_handle)
-{
-    (void)cfg_size;
-    ESP_RETURN_ON_FALSE(config != NULL && device_handle != NULL ,
-                        // cfg_size == sizeof(dev_custom_audio_dac_config_t),
-                        ESP_ERR_INVALID_ARG, TAG, "invalid UAC speaker config");
-
-    const dev_custom_audio_dac_config_t *cfg = (const dev_custom_audio_dac_config_t *)config;
-    esp_err_t ret = uac_host_acquire(cfg->sample_rate_hz > 0 ? cfg->sample_rate_hz : 16000);
-    if (ret != ESP_OK) {
-        return ret;
-    }
-
-    uac_driver_event_msg_t uac_info = {0};
-    ret = wait_for_uac_device(USB_DEVICE_KIND_UAC_SPK, &uac_info);
-    if (ret != ESP_OK) {
-        (void)uac_host_release();
-        ESP_LOGE(TAG, "UAC speaker not found: %s", esp_err_to_name(ret));
-        return ret;
-    }
-
-    const uac_codec_config_t uac_config = {
-        .addr = uac_info.addr,
-        .iface_num = uac_info.iface_num,
-        .preferred_sample_rate = cfg->sample_rate_hz > 0 ? cfg->sample_rate_hz : 16000,
-        .is_input = false,
-    };
-    dev_audio_codec_handles_t *codec_handles = uac_codec_new_handle(&uac_config);
-    if (codec_handles == NULL) {
-        (void)uac_host_release();
-        return ESP_ERR_NO_MEM;
-    }
-    *device_handle = codec_handles;
-    esp_board_device_update_config("audio_dac", (void *)&esp_bmgr_fake_audio_dac_cfg);
-    ESP_LOGI(TAG, "UAC speaker initialized, codec_handles: %p", codec_handles);
-    return ESP_OK;
-}
-
-static int audio_dac_deinit(void *device_handle)
-{
-    uac_codec_delete_handle((dev_audio_codec_handles_t *)device_handle);
-    return uac_host_release();
-}
-
-CUSTOM_DEVICE_IMPLEMENT(audio_dac, audio_dac_init, audio_dac_deinit);
 
 static int audio_adc_init(void *config, int cfg_size, void **device_handle)
 {

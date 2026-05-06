@@ -5,7 +5,7 @@ peripherals:
     type: rmt
     role: tx
     config:
-      gpio_num: 38
+      gpio_num: 48
       clk_src: RMT_CLK_SRC_DEFAULT
       resolution_hz: 10000000
       mem_block_symbols: 64
@@ -31,33 +31,31 @@ peripherals:
   - name: i2s_audio_out
     type: i2s
     role: master
-    format: pdm-out
+    format: std-out
     config:
-      sample_rate_hz: 16000
+      sample_rate_hz: 24000
       clk_src: I2S_CLK_SRC_DEFAULT
       mclk_multiple: 256
-      up_sample_fp: 960
-      up_sample_fs: 441
-      bclk_div: 8
       data_bit_width: 16
-      slot_bit_width: I2S_SLOT_BIT_WIDTH_AUTO
-      slot_mode: I2S_SLOT_MODE_MONO
-      slot_mask: I2S_PDM_SLOT_LEFT
-      data_fmt: "I2S_PDM_DATA_FMT_PCM"
-      sd_prescale: 0
-      sd_scale: I2S_PDM_SIG_SCALING_MUL_4
-      hp_scale: I2S_PDM_SIG_SCALING_MUL_4
-      lp_scale: I2S_PDM_SIG_SCALING_MUL_4
-      sinc_scale: I2S_PDM_SIG_SCALING_MUL_4
-      line_mode: I2S_PDM_TX_ONE_LINE_CODEC
-      hp_en: false
-      hp_cut_off_freq_hz: 35.5
-      sd_dither: 0
-      sd_dither2: 1
+      slot_bit_width: I2S_SLOT_BIT_WIDTH_16BIT
+      slot_mode: I2S_SLOT_MODE_STEREO
+      slot_mask: I2S_STD_SLOT_BOTH
+      ws_width: 16
+      ws_pol: false
+      bit_shift: true
+      left_align: true
+      big_endian: false
+      bit_order_lsb: false
       pins:
-        doubt: 9                    # [IO] Data output pin
+        mclk: 38                    # [IO] I2S MCLK
+        bclk: 14                    # [IO] I2S BCLK
+        ws: 13                      # [IO] I2S LRCK / WS
+        dout: 45                    # [IO] I2S speaker data output
+        din: -1
       invert_flags:
-        clk_inv: false
+        mclk_inv: false
+        bclk_inv: false
+        ws_inv: false
 
   # LCD SPI configuration for the 240x320 ST7789 SPI color panel.
   - name: spi_display

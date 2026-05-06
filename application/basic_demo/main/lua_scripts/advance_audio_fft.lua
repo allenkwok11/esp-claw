@@ -14,10 +14,54 @@ local LOUDNESS_GAMMA = 0.60
 local LOUDNESS_BOOST = 1.45
 local PEAK_HOLD = 2
 
+local function play_output_test_tone(reason)
+    print("[audio_fft_2] WARN: " .. reason .. ", playing output test tone instead")
+    local board_info = bm.get_board_info()
+    local output, output_rate, output_channels, output_bits
+
+    if board_info and board_info.name == "esp32_S3_DevKitC_1_breadboard_smallscreen" then
+        local i2s_tx, rate, channels, bits =
+            bm.get_i2s_output_params("i2s_audio_out")
+        if not i2s_tx then
+            print("[audio_fft_2] ERROR: get_i2s_output_params(i2s_audio_out) failed: " .. tostring(rate))
+            return
+        end
+        output_rate, output_channels, output_bits = rate, channels, 32
+        output = audio.new_i2s_output(i2s_tx, output_rate, output_channels, output_bits, 85)
+    else
+        local output_codec, rate, channels, bits =
+            bm.get_audio_codec_output_params("audio_dac")
+        if not output_codec then
+            print("[audio_fft_2] ERROR: get_audio_codec_output_params(audio_dac) failed: " .. tostring(rate))
+            return
+        end
+        output_rate, output_channels, output_bits = rate, channels, bits
+        output = audio.new_output(output_codec, output_rate, output_channels, output_bits, 85)
+    end
+    if not output then
+        print("[audio_fft_2] ERROR: new_output failed")
+        return
+    end
+    pcall(audio.set_volume, output, 85)
+    pcall(audio.play_tone, output, 523, 180, 85, true)
+    delay.delay_ms(80)
+    pcall(audio.play_tone, output, 659, 180, 85, true)
+    delay.delay_ms(80)
+    pcall(audio.play_tone, output, 784, 240, 85, true)
+    pcall(audio.close, output)
+    print("[audio_fft_2] playback-only tone test done")
+end
+
+local board_info = bm.get_board_info()
+if board_info and board_info.name == "esp32_S3_DevKitC_1_breadboard_smallscreen" then
+    play_output_test_tone("playback-only board")
+    return
+end
+
 local input_codec, input_rate, input_channels, input_bits, input_gain =
     bm.get_audio_codec_input_params("audio_adc")
 if not input_codec then
-    print("[audio_fft_2] ERROR: get_audio_codec_input_params(audio_adc) failed: " .. tostring(input_rate))
+    play_output_test_tone("audio_adc unavailable: " .. tostring(input_rate))
     return
 end
 

@@ -13,6 +13,7 @@
 #include "captive_dns.h"
 #include "claw_skill.h"
 #include "config_http_server.h"
+#include "driver/i2s_common.h"
 #include "esp_err.h"
 #include "esp_heap_caps.h"
 #include "esp_lcd_panel_ops.h"
@@ -31,6 +32,10 @@ static basic_demo_settings_t s_settings = {0};
 const char *basic_demo_fatfs_base_path = "/fatfs";
 #define BASIC_DEMO_FATFS_PARTITION_LABEL "storage"
 #define BASIC_DEMO_ENABLE_MEM_LOG        (0)
+#define BASIC_DEMO_BOOT_BEEP_RATE_HZ     24000
+#define BASIC_DEMO_BOOT_BEEP_FREQ_HZ     1000
+#define BASIC_DEMO_BOOT_BEEP_MS          220
+#define BASIC_DEMO_BOOT_BEEP_CHANNELS    2
 
 static wl_handle_t s_wl_handle = WL_INVALID_HANDLE;
 
@@ -96,6 +101,71 @@ static esp_err_t basic_demo_fill_display_boot_color(uint16_t color)
     ESP_LOGI(TAG, "Boot fill completed on LCD: %dx%d color=0x%04x", width, height, color);
     return ESP_OK;
 #endif
+}
+
+static esp_err_t basic_demo_play_boot_beep(void)
+{
+    i2s_chan_handle_t tx_handle = NULL;
+    int32_t *buffer = NULL;
+    esp_err_t err;
+    size_t bytes_written = 0;
+    const size_t frames_per_chunk = 256;
+    const uint32_t total_frames = (BASIC_DEMO_BOOT_BEEP_RATE_HZ * BASIC_DEMO_BOOT_BEEP_MS) / 1000;
+    const uint32_t half_period_frames = BASIC_DEMO_BOOT_BEEP_RATE_HZ / (BASIC_DEMO_BOOT_BEEP_FREQ_HZ * 2);
+    uint32_t frames_done = 0;
+
+    buffer = heap_caps_malloc(frames_per_chunk * BASIC_DEMO_BOOT_BEEP_CHANNELS * sizeof(*buffer),
+                              MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+    if (buffer == NULL) {
+        ESP_LOGE(TAG, "Boot beep buffer allocation failed");
+        return ESP_ERR_NO_MEM;
+    }
+
+    err = esp_board_manager_get_periph_handle(ESP_BOARD_PERIPH_NAME_I2S_AUDIO_OUT,
+                                              (void **)&tx_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Boot beep get i2s_audio_out handle failed: %s", esp_err_to_name(err));
+        goto done;
+    }
+    if (tx_handle == NULL) {
+        ESP_LOGE(TAG, "Boot beep i2s_audio_out handle is NULL");
+        err = ESP_ERR_INVALID_STATE;
+        goto done;
+    }
+
+    while (frames_done < total_frames) {
+        size_t frames_this_chunk = total_frames - frames_done;
+        if (frames_this_chunk > frames_per_chunk) {
+            frames_this_chunk = frames_per_chunk;
+        }
+
+        for (size_t i = 0; i < frames_this_chunk; ++i) {
+            uint32_t frame_index = frames_done + i;
+            bool high = ((frame_index / half_period_frames) & 1U) == 0;
+            int32_t sample = (high ? 18000 : -18000) * 65536;
+            for (size_t ch = 0; ch < BASIC_DEMO_BOOT_BEEP_CHANNELS; ++ch) {
+                buffer[i * BASIC_DEMO_BOOT_BEEP_CHANNELS + ch] = sample;
+            }
+        }
+
+        err = i2s_channel_write(tx_handle,
+                                buffer,
+                                frames_this_chunk * BASIC_DEMO_BOOT_BEEP_CHANNELS * sizeof(*buffer),
+                                &bytes_written,
+                                1000);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Boot beep I2S write failed: %s", esp_err_to_name(err));
+            goto done;
+        }
+        frames_done += frames_this_chunk;
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(40));
+    ESP_LOGI(TAG, "Boot beep played on i2s_audio_out");
+
+done:
+    free(buffer);
+    return err;
 }
 
 static esp_err_t cap_lua_run_deactivate_guard(const char *session_id,
@@ -270,6 +340,10 @@ void app_main(void)
     vTaskDelay(pdMS_TO_TICKS(80));
     ESP_ERROR_CHECK(basic_demo_fill_display_boot_color(0xF800));
     vTaskDelay(pdMS_TO_TICKS(120));
+    esp_err_t beep_err = basic_demo_play_boot_beep();
+    if (beep_err != ESP_OK) {
+        ESP_LOGW(TAG, "Boot beep failed: %s", esp_err_to_name(beep_err));
+    }
 #if defined(CONFIG_BASIC_DEMO_ENABLE_EMOTE)
     ESP_ERROR_CHECK(app_expression_emote_start());
 #endif
